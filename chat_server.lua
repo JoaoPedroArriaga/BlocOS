@@ -24,7 +24,7 @@ local Server = {
     clients = {},           -- Clientes conectados {id = {name, room, lastSeen}}
     rooms = {               -- Salas disponíveis
         general = {},
-        off topic = {},
+        offTopic = {},
         ajuda = {},
         random = {}
     },

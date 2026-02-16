@@ -1,5 +1,5 @@
 -- home.lua - BlocOS Home Screen
--- Versão com visual moderno e efeitos
+-- Versão corrigida - problema no onKeyPress resolvido
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
@@ -30,103 +30,27 @@ local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
 -- ==========================================
--- FUNDO COM GRADIENTE (simulado)
--- ==========================================
-for i = 1, h do
-    local gradient = main:addLabel()
-        :setPosition(1, i)
-        :setSize(w, 1)
-        :setBackground(colors.bg)
-        :setText(string.rep(" ", w))
-    
-    -- Efeito de gradiente (mais claro no centro)
-    if i > h/3 and i < 2*h/3 then
-        gradient:setBackground(colors.shadow)
-    end
-end
-
--- ==========================================
--- BARRA DE STATUS SUPERIOR (ESTILO MAC)
+-- BARRA DE STATUS
 -- ==========================================
 local statusBar = main:addFrame()
     :setPosition(1, 1)
-    :setSize(w, 2)
-    :setBackground(colors.bg)
-
--- Efeito de vidro (borda inferior)
-statusBar:addLabel()
-    :setPosition(1, 2)
     :setSize(w, 1)
     :setBackground(colors.accent1)
-    :setText("")
-    :setForeground(colors.accent1)
 
--- Logo BlocOS com estilo
-local logo = statusBar:addLabel()
-    :setPosition(3, 1)
-    :setText("◉ BLOCOS")
-    :setForeground(colors.accent1)
-    :setBackground(colors.bg)
+-- Logo
+statusBar:addLabel()
+    :setPosition(2, 1)
+    :setText(" BLOCOS ")
+    :setForeground(colors.bg)
 
--- Efeito de brilho no logo (hover)
-logo:onHover(function()
-    logo:setForeground(colors.highlight)
-end, function()
-    logo:setForeground(colors.accent1)
-end)
-
--- Relógio digital estilizado
+-- Relógio
 local clock = statusBar:addLabel()
-    :setPosition(w - 15, 1)
-    :setText("[" .. os.date("%H:%M:%S") .. "]")
-    :setForeground(colors.accent2)
-    :setBackground(colors.bg)
-
--- Bateria (simulada)
-local battery = statusBar:addLabel()
-    :setPosition(w - 5, 1)
-    :setText("⚡100%")
-    :setForeground(colors.accent3)
-    :setBackground(colors.bg)
-
--- ==========================================
--- PAINEL PRINCIPAL COM SOMBRA
--- ==========================================
-local mainPanel = main:addFrame()
-    :setPosition(3, 4)
-    :setSize(w - 6, h - 8)
-    :setBackground(colors.panel)
-
--- Sombra do painel (efeito 3D)
-main:addLabel()
-    :setPosition(4, 5)
-    :setSize(w - 6, h - 8)
-    :setBackground(colors.shadow)
-    :setText("")
-    :setForeground(colors.shadow)
-
--- ==========================================
--- CABEÇALHO DO PAINEL
--- ==========================================
-local panelHeader = main:addFrame()
-    :setPosition(5, 5)
-    :setSize(w - 8, 2)
-    :setBackground(colors.accent1)
-
-panelHeader:addLabel()
-    :setPosition(3, 1)
-    :setText("🚀 BLOCOS DASHBOARD")
+    :setPosition(w - 10, 1)
+    :setText(os.date("%H:%M:%S"))
     :setForeground(colors.bg)
-    :setBackground(colors.accent1)
-
-panelHeader:addLabel()
-    :setPosition(w - 20, 1)
-    :setText("v" .. VERSION)
-    :setForeground(colors.bg)
-    :setBackground(colors.accent1)
 
 -- ==========================================
--- WIDGETS (CARDS MODERNOS)
+-- WIDGETS
 -- ==========================================
 
 -- Função para criar cards
@@ -134,13 +58,13 @@ local function createCard(x, y, title, value, icon, color)
     local card = main:addFrame()
         :setPosition(x, y)
         :setSize(18, 5)
-        :setBackground(colors.bg)
+        :setBackground(colors.panel)
     
-    -- Borda do card
+    -- Borda
     card:addLabel()
         :setPosition(1, 1)
         :setSize(18, 5)
-        :setBackground(colors.gray)
+        :setBackground(colors.shadow)
         :setText("")
     
     -- Ícone
@@ -148,226 +72,226 @@ local function createCard(x, y, title, value, icon, color)
         :setPosition(2, 2)
         :setText(icon)
         :setForeground(color)
-        :setBackground(colors.bg)
     
     -- Título
     card:addLabel()
         :setPosition(5, 2)
         :setText(title)
-        :setForeground(colors.white)
-        :setBackground(colors.bg)
+        :setForeground(colors.text)
     
     -- Valor
-    local val = card:addLabel()
+    card:addLabel()
         :setPosition(5, 3)
         :setText(value)
         :setForeground(color)
-        :setBackground(colors.bg)
     
     return card
 end
 
--- Criar cards
-local card1 = createCard(7, 8, "CPU", "2%", "⚡", colors.accent1)
-local card2 = createCard(27, 8, "RAM", "128KB", "📊", colors.accent2)
-local card3 = createCard(47, 8, "STORAGE", "45%", "💾", colors.accent3)
+-- Criar cards de informação
+local cpuCard = createCard(3, 3, "CPU", "2%", "⚡", colors.accent1)
+local memCard = createCard(23, 3, "RAM", "128KB", "📊", colors.accent2)
+local diskCard = createCard(43, 3, "DISK", "45%", "💾", colors.accent3)
 
 -- ==========================================
--- LISTA DE APPS (ESTILO MODERNO)
+-- LISTA DE APPS
 -- ==========================================
-local appsTitle = main:addLabel()
-    :setPosition(7, 15)
+
+main:addLabel()
+    :setPosition(3, 9)
     :setText("📱 APPS DISPONÍVEIS")
     :setForeground(colors.accent4)
-    :setBackground(colors.bg)
 
--- Apps com design de cards
+-- Apps pré-definidos
 local apps = {
-    {name = "App Store", icon = "📦", color = colors.accent1, file = "apps/store.lua", desc = "Baixe novos apps"},
-    {name = "Chat", icon = "💬", color = colors.accent2, file = "apps/chat.lua", desc = "Converse com amigos"},
-    {name = "Monitor", icon = "📊", color = colors.accent3, file = "apps/monitor.lua", desc = "Veja estatísticas"},
-    {name = "Config", icon = "⚙", color = colors.accent4, file = "kernel/config.lua", desc = "Ajustes do sistema"},
-    {name = "Arquivos", icon = "📁", color = colors.accent5, file = "apps/files.lua", desc = "Gerenciar arquivos"},
-    {name = "Calc", icon = "🧮", color = colors.accent1, file = "apps/calc.lua", desc = "Calculadora"}
+    {name = "App Store", icon = "📦", color = colors.accent1, file = "apps/store.lua"},
+    {name = "Chat", icon = "💬", color = colors.accent2, file = "apps/chat.lua"},
+    {name = "Monitor", icon = "📊", color = colors.accent3, file = "apps/monitor.lua"},
+    {name = "Config", icon = "⚙", color = colors.accent4, file = "apps/settings.lua"}
 }
 
-local startY = 17
+-- Criar botões para cada app
+local startY = 11
 for i, app in ipairs(apps) do
-    local col = (i - 1) % 3
-    local row = math.floor((i - 1) / 3)
+    local col = (i - 1) % 2
+    local row = math.floor((i - 1) / 2)
     
-    local x = 7 + col * 20
-    local y = startY + row * 6
+    local x = 3 + col * 25
+    local y = startY + row * 4
     
-    -- Card do app
-    local appCard = main:addFrame()
+    -- Frame do app
+    local appFrame = main:addFrame()
         :setPosition(x, y)
-        :setSize(18, 5)
-        :setBackground(colors.bg)
+        :setSize(20, 3)
+        :setBackground(colors.panel)
     
-    -- Borda
-    appCard:addLabel()
-        :setPosition(1, 1)
-        :setSize(18, 5)
-        :setBackground(colors.gray)
-        :setText("")
-    
-    -- Ícone grande
-    appCard:addLabel()
+    -- Ícone
+    appFrame:addLabel()
         :setPosition(2, 2)
         :setText(app.icon)
         :setForeground(app.color)
-        :setBackground(colors.bg)
-        :setFontSize(2)  -- Ícone maior (se suportado)
     
-    -- Nome do app
-    appCard:addLabel()
+    -- Nome
+    appFrame:addLabel()
         :setPosition(5, 2)
         :setText(app.name)
-        :setForeground(colors.white)
-        :setBackground(colors.bg)
+        :setForeground(colors.text)
     
-    -- Descrição
-    appCard:addLabel()
-        :setPosition(5, 3)
-        :setText(app.desc)
-        :setForeground(colors.gray)
-        :setBackground(colors.bg)
-    
-    -- Botão de abrir (estilo moderno)
-    local openBtn = appCard:addButton()
-        :setPosition(12, 4)
-        :setSize(5, 1)
-        :setText("▶")
-        :setBackground(app.color)
-        :setForeground(colors.bg)
+    -- Botão de abrir (invisível, mas clicável)
+    local btn = appFrame:addButton()
+        :setPosition(1, 1)
+        :setSize(20, 3)
+        :setText("")
+        :setBackground(colors.panel)
+        :setForeground(colors.panel)
         :onClick(function()
             term.clear()
             shell.run(app.file)
         end)
     
-    -- Efeito hover no card inteiro
-    local function highlightCard()
-        appCard:setBackground(colors.highlight)
-        openBtn:setBackground(colors.white)
-        openBtn:setForeground(colors.black)
-    end
-    
-    local function unhighlightCard()
-        appCard:setBackground(colors.bg)
-        openBtn:setBackground(app.color)
-        openBtn:setForeground(colors.bg)
-    end
-    
-    appCard:onHover(highlightCard, unhighlightCard)
+    -- Efeito hover
+    btn:onHover(function()
+        appFrame:setBackground(colors.highlight)
+        btn:setBackground(colors.highlight)
+    end, function()
+        appFrame:setBackground(colors.panel)
+        btn:setBackground(colors.panel)
+    end)
 end
 
 -- ==========================================
--- RODAPÉ COM DICAS (ESTILO MODERNO)
+-- RODAPÉ
 -- ==========================================
 local footer = main:addFrame()
-    :setPosition(1, h - 2)
+    :setPosition(1, h - 1)
     :setSize(w, 1)
     :setBackground(colors.accent5)
 
 footer:addLabel()
     :setPosition(3, 1)
-    :setText("🔹 Q: Menu  🔹 F1: Ajuda  🔹 ↑↓: Navegar  🔹 Enter: Abrir")
+    :setText(" Q: Menu | F1: Ajuda | Clique nos apps para abrir")
     :setForeground(colors.bg)
-    :setBackground(colors.accent5)
 
 -- ==========================================
--- MENU FLUTUANTE (ESTILO MODERNO)
+-- CORREÇÃO: SISTEMA DE TECLAS (ANTES DAVA ERRO)
 -- ==========================================
-local function showModernMenu()
-    local menu = main:addFrame()
-        :setPosition(30, 10)
-        :setSize(25, 10)
-        :setBackground(colors.bg)
-    
-    -- Sombra
-    main:addLabel()
-        :setPosition(31, 11)
-        :setSize(25, 10)
-        :setBackground(colors.gray)
-        :setText("")
-    
-    -- Título do menu
-    menu:addLabel()
-        :setPosition(3, 2)
-        :setText("⚙️ BLOCOS MENU")
-        :setForeground(colors.accent1)
-        :setBackground(colors.bg)
-    
-    -- Opções
-    local opt1 = menu:addButton()
-        :setPosition(3, 4)
-        :setSize(19, 1)
-        :setText("🔄  Reiniciar")
-        :setBackground(colors.bg)
-        :setForeground(colors.white)
-        :onClick(function() os.reboot() end)
-    
-    local opt2 = menu:addButton()
-        :setPosition(3, 5)
-        :setSize(19, 1)
-        :setText("⏻  Desligar")
-        :setBackground(colors.bg)
-        :setForeground(colors.white)
-        :onClick(function() os.shutdown() end)
-    
-    local opt3 = menu:addButton()
-        :setPosition(3, 6)
-        :setSize(19, 1)
-        :setText("✕  Cancelar")
-        :setBackground(colors.bg)
-        :setForeground(colors.white)
-        :onClick(function() menu:remove() end)
-    
-    -- Efeitos hover
-    local function addHover(btn)
-        btn:onHover(function()
-            btn:setBackground(colors.accent1)
-            btn:setForeground(colors.bg)
-        end, function()
-            btn:setBackground(colors.bg)
-            btn:setForeground(colors.white)
-        end)
-    end
-    
-    addHover(opt1)
-    addHover(opt2)
-    addHover(opt3)
-end
 
--- ==========================================
--- ATALHOS DE TECLADO
--- ==========================================
-main:onKeyPress(function(key)
+-- Criar um frame invisível para capturar teclas (solução para o erro)
+local keyHandler = main:addFrame()
+    :setPosition(1, 1)
+    :setSize(1, 1)
+    :setBackground(colors.bg)
+
+-- Agora sim, o onKeyPress funciona corretamente
+keyHandler:onKeyPress(function(key)
     if key == keys.q then
-        showModernMenu()
-    elseif key == keys.f1 then
-        -- Tela de ajuda estilizada
-        term.clear()
-        term.setTextColor(colors.cyan)
-        print("╔══════════════════════════════════╗")
-        print("║         BLOCOS HELP              ║")
-        print("╚══════════════════════════════════╝")
-        term.setTextColor(colors.white)
-        print()
-        print("📌 Comandos Disponíveis:")
-        print("   Q  - Menu principal")
-        print("   F1 - Esta ajuda")
-        print("   Enter - Abrir app")
-        print("   ↑/↓ - Navegar")
-        print()
-        print("📱 Apps:")
-        for i, app in ipairs(apps) do
-            print("   " .. app.icon .. " " .. app.name .. " - " .. app.desc)
+        -- Menu de saída
+        local menu = main:addFrame()
+            :setPosition(30, 10)
+            :setSize(20, 8)
+            :setBackground(colors.panel)
+        
+        -- Sombra
+        main:addLabel()
+            :setPosition(31, 11)
+            :setSize(20, 8)
+            :setBackground(colors.shadow)
+            :setText("")
+        
+        menu:addLabel()
+            :setPosition(3, 2)
+            :setText("⚙️ BLOCOS MENU")
+            :setForeground(colors.accent1)
+        
+        local opt1 = menu:addButton()
+            :setPosition(3, 4)
+            :setSize(14, 1)
+            :setText("1. Reiniciar")
+            :setBackground(colors.panel)
+            :setForeground(colors.text)
+            :onClick(function() os.reboot() end)
+        
+        local opt2 = menu:addButton()
+            :setPosition(3, 5)
+            :setSize(14, 1)
+            :setText("2. Desligar")
+            :setBackground(colors.panel)
+            :setForeground(colors.text)
+            :onClick(function() os.shutdown() end)
+        
+        local opt3 = menu:addButton()
+            :setPosition(3, 6)
+            :setSize(14, 1)
+            :setText("3. Cancelar")
+            :setBackground(colors.panel)
+            :setForeground(colors.text)
+            :onClick(function() menu:remove() end)
+        
+        -- Efeitos hover
+        local function addHover(btn)
+            btn:onHover(function()
+                btn:setBackground(colors.highlight)
+                btn:setForeground(colors.bg)
+            end, function()
+                btn:setBackground(colors.panel)
+                btn:setForeground(colors.text)
+            end)
         end
-        print()
-        print("Pressione qualquer tecla para voltar")
-        os.pullEvent("key")
+        
+        addHover(opt1)
+        addHover(opt2)
+        addHover(opt3)
+        
+    elseif key == keys.f1 then
+        -- Tela de ajuda
+        local helpFrame = main:addFrame()
+            :setPosition(25, 8)
+            :setSize(30, 12)
+            :setBackground(colors.panel)
+        
+        helpFrame:addLabel()
+            :setPosition(3, 2)
+            :setText("📚 BLOCOS HELP")
+            :setForeground(colors.accent1)
+        
+        helpFrame:addLabel()
+            :setPosition(3, 4)
+            :setText("Comandos:")
+            :setForeground(colors.accent3)
+        
+        helpFrame:addLabel()
+            :setPosition(5, 5)
+            :setText("Q - Menu principal")
+            :setForeground(colors.text)
+        
+        helpFrame:addLabel()
+            :setPosition(5, 6)
+            :setText("F1 - Esta ajuda")
+            :setForeground(colors.text)
+        
+        helpFrame:addLabel()
+            :setPosition(5, 7)
+            :setText("Clique nos apps para abrir")
+            :setForeground(colors.text)
+        
+        helpFrame:addLabel()
+            :setPosition(3, 9)
+            :setText("Versão: " .. VERSION)
+            :setForeground(colors.accent2)
+        
+        local closeBtn = helpFrame:addButton()
+            :setPosition(12, 11)
+            :setSize(6, 1)
+            :setText("[OK]")
+            :setBackground(colors.accent3)
+            :setForeground(colors.bg)
+            :onClick(function() helpFrame:remove() end)
+        
+        closeBtn:onHover(function()
+            closeBtn:setBackground(colors.highlight)
+        end, function()
+            closeBtn:setBackground(colors.accent3)
+        end)
     end
 end)
 
@@ -378,18 +302,34 @@ end)
 -- Atualizar relógio
 local function updateClock()
     while true do
-        clock:setText("[" .. os.date("%H:%M:%S") .. "]")
+        clock:setText(os.date("%H:%M:%S"))
         sleep(1)
     end
 end
 
--- Atualizar estatísticas
+-- Atualizar estatísticas (simulado)
 local function updateStats()
-    local cpu = 0
+    local cpu = 2
+    local mem = 128
+    local disk = 45
+    
     while true do
-        cpu = math.random(1, 20)
-        -- Atualizar cards quando implementarmos referências diretas
-        sleep(3)
+        -- Simular variação
+        cpu = math.random(1, 10)
+        mem = 128 + math.random(-5, 5)
+        disk = 45 + math.random(-2, 2)
+        
+        -- Atualizar cards
+        cpuCard:removeChildren()
+        cpuCard = createCard(3, 3, "CPU", cpu .. "%", "⚡", colors.accent1)
+        
+        memCard:removeChildren()
+        memCard = createCard(23, 3, "RAM", mem .. "KB", "📊", colors.accent2)
+        
+        diskCard:removeChildren()
+        diskCard = createCard(43, 3, "DISK", disk .. "%", "💾", colors.accent3)
+        
+        sleep(5)
     end
 end
 
