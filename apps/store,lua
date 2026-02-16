@@ -1,5 +1,5 @@
 -- apps/store.lua - BlocOS App Store
--- Versão corrigida com métodos reais do Basalt
+-- Versão final com teclas funcionando
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
@@ -9,7 +9,6 @@ local REPO_NAME = "BlocOS"
 local CATALOG_URL = "https://raw.githubusercontent.com/" .. REPO_OWNER .. "/" .. REPO_NAME .. "/main/catalog.lua"
 local APPS_URL = "https://raw.githubusercontent.com/" .. REPO_OWNER .. "/" .. REPO_NAME .. "/main/apps/"
 
--- Cores seguras
 local colors = {
     bg = colors.black,
     text = colors.white,
@@ -33,10 +32,28 @@ local selectedCategory = 1
 local categories = {"Todos", "Social", "Ferramentas", "Jogos", "Sistema"}
 
 -- ==========================================
--- CABECALHO
+-- KEYHANDLER GLOBAL
 -- ==========================================
+local keyCatcher = main:addLabel()
+    :setPosition(1, 1)
+    :setSize(1, 1)
+    :setText("")
+    :setBackground(colors.bg)
+    :setForeground(colors.bg)
 
--- Botao voltar (usando metodo correto: onClick)
+keyCatcher:onKey(function(key)
+    if key == keys.q then
+        shell.run("home")
+    elseif key == keys.f1 then
+        refreshCatalog()
+    end
+end)
+
+keyCatcher:onClick(function() end)
+
+-- ==========================================
+-- CABEÇALHO
+-- ==========================================
 local backBtn = main:addButton()
     :setPosition(2, 2)
     :setSize(8, 1)
@@ -48,17 +65,16 @@ local backBtn = main:addButton()
 backBtn:onHover(function()
     backBtn:setBackground(colors.highlight)
 end)
+
 backBtn:onLeave(function()
     backBtn:setBackground(colors.accent5)
 end)
 
--- Titulo
 main:addLabel()
     :setPosition(15, 2)
     :setText("APP STORE")
     :setForeground(colors.accent1)
 
--- Botao atualizar
 local refreshBtn = main:addButton()
     :setPosition(w - 15, 2)
     :setSize(10, 1)
@@ -70,6 +86,7 @@ local refreshBtn = main:addButton()
 refreshBtn:onHover(function()
     refreshBtn:setBackground(colors.highlight)
 end)
+
 refreshBtn:onLeave(function()
     refreshBtn:setBackground(colors.accent3)
 end)
@@ -99,6 +116,7 @@ local function drawCategories()
                 btn:setBackground(colors.highlight)
             end
         end)
+        
         btn:onLeave(function()
             if i ~= selectedCategory then
                 btn:setBackground(colors.panel)
@@ -128,19 +146,16 @@ local function redrawAppList()
             :setSize(w - 12, 4)
             :setBackground(colors.panel)
         
-        -- Nome
         card:addLabel()
             :setPosition(2, 1)
             :setText(app.name)
             :setForeground(colors.accent1)
         
-        -- Descricao
         card:addLabel()
             :setPosition(2, 2)
             :setText(app.desc or "Sem descricao")
             :setForeground(colors.text)
         
-        -- Botao de acao
         local actionBtn
         if app.installed then
             actionBtn = card:addButton()
@@ -168,6 +183,7 @@ local function redrawAppList()
         actionBtn:onHover(function()
             actionBtn:setBackground(colors.highlight)
         end)
+        
         actionBtn:onLeave(function()
             if app.installed then
                 actionBtn:setBackground(colors.accent3)
@@ -181,9 +197,8 @@ local function redrawAppList()
 end
 
 -- ==========================================
--- FUNCOES PRINCIPAIS
+-- FUNÇÕES
 -- ==========================================
-
 local function isInstalled(app)
     return fs.exists("apps/" .. app.file)
 end
@@ -272,7 +287,7 @@ local function refreshCatalog()
 end
 
 -- ==========================================
--- RODAPE
+-- RODAPÉ
 -- ==========================================
 local footer = main:addFrame()
     :setPosition(1, h - 1)
@@ -281,19 +296,8 @@ local footer = main:addFrame()
 
 footer:addLabel()
     :setPosition(3, 1)
-    :setText(" Q: Home | Apps baixados do GitHub")
+    :setText(" Q: Home | F1: Atualizar")
     :setForeground(colors.bg)
-
--- ==========================================
--- TECLAS
--- ==========================================
-main:onKey(function(key)
-    if key == keys.q then
-        shell.run("home")
-    elseif key == keys.f1 then
-        refreshCatalog()
-    end
-end)
 
 -- ==========================================
 -- INICIAR

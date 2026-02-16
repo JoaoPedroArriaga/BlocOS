@@ -1,5 +1,4 @@
 -- install.lua - BlocOS Installer
--- Versão com caracteres seguros
 
 local REPO = "https://raw.githubusercontent.com/JoaoPedroArriaga/BlocOS/main/"
 local BASALT_URL = "https://github.com/Pyroxenium/Basalt/releases/download/v1.7/basalt.lua?raw=true"

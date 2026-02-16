@@ -1,12 +1,10 @@
 -- apps/chat.lua - BlocOS Chat App
--- Versão corrigida com métodos reais do Basalt
+-- Versão final com teclas funcionando
 
 local basalt = require("basalt")
 local VERSION = "1.0.0"
-
 local REDNET_PORT = 12345
 
--- Cores seguras
 local colors = {
     bg = colors.black,
     text = colors.white,
@@ -35,9 +33,27 @@ local app = {
 }
 
 -- ==========================================
--- FUNCOES DE REDE
+-- KEYHANDLER GLOBAL
 -- ==========================================
+local keyCatcher = main:addLabel()
+    :setPosition(1, 1)
+    :setSize(1, 1)
+    :setText("")
+    :setBackground(colors.bg)
+    :setForeground(colors.bg)
 
+keyCatcher:onKey(function(key)
+    if key == keys.q then
+        disconnect()
+        shell.run("home")
+    end
+end)
+
+keyCatcher:onClick(function() end)
+
+-- ==========================================
+-- FUNÇÕES DE REDE
+-- ==========================================
 local function findModem()
     local sides = {"left", "right", "top", "bottom", "front", "back"}
     for _, side in ipairs(sides) do
@@ -94,8 +110,6 @@ end
 -- ==========================================
 -- INTERFACE
 -- ==========================================
-
--- Cabecalho
 local header = main:addFrame()
     :setPosition(1, 1)
     :setSize(w, 2)
@@ -119,7 +133,15 @@ local backBtn = header:addButton()
     :setForeground(colors.text)
     :onClick(function() shell.run("home") end)
 
--- Painel de usuarios
+backBtn:onHover(function()
+    backBtn:setBackground(colors.highlight)
+end)
+
+backBtn:onLeave(function()
+    backBtn:setBackground(colors.accent5)
+end)
+
+-- Painel de usuários
 local userPanel = main:addFrame()
     :setPosition(w - 20, 4)
     :setSize(18, h - 6)
@@ -135,7 +157,7 @@ local userList = userPanel:addFrame()
     :setSize(16, h - 10)
     :setBackground(colors.panel)
 
--- Area de mensagens
+-- Área de mensagens
 local msgArea = main:addFrame()
     :setPosition(3, 4)
     :setSize(w - 25, h - 6)
@@ -167,10 +189,17 @@ local sendBtn = inputFrame:addButton()
     :setForeground(colors.text)
     :onClick(function() sendMessage() end)
 
--- ==========================================
--- FUNCOES DO CHAT
--- ==========================================
+sendBtn:onHover(function()
+    sendBtn:setBackground(colors.highlight)
+end)
 
+sendBtn:onLeave(function()
+    sendBtn:setBackground(colors.accent3)
+end)
+
+-- ==========================================
+-- FUNÇÕES DO CHAT
+-- ==========================================
 local function sendMessage()
     local text = inputField:getText()
     if text ~= "" then
@@ -275,7 +304,6 @@ local loginBtn = loginFrame:addButton()
                 statusLabel:setForeground(colors.accent3)
                 addMessage("Conectado ao servidor", "sistema")
                 
-                -- Thread de recebimento
                 parallel.waitForAny(
                     function()
                         while app.connected do
@@ -312,6 +340,7 @@ local loginBtn = loginFrame:addButton()
 loginBtn:onHover(function()
     loginBtn:setBackground(colors.highlight)
 end)
+
 loginBtn:onLeave(function()
     loginBtn:setBackground(colors.accent3)
 end)

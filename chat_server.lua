@@ -1,5 +1,4 @@
 -- chat_server.lua - BlocOS Chat Server
--- Versão com caracteres seguros
 
 local VERSION = "1.0.0"
 local REDNET_PORT = 12345
@@ -25,7 +24,7 @@ local function findModem()
     return nil
 end
 
-local function log(msg, tipo)
+local function log(msg)
     local hora = os.date("%H:%M:%S")
     print("[" .. hora .. "] " .. msg)
 end
