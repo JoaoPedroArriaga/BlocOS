@@ -12,7 +12,7 @@ A elegant and functional operating system for ComputerCraft, focused on beautifu
 
 ## 🚀 Quick Installation
 ```lua
-wget https://raw.githubusercontent.com/YOUR_USERNAME/BlocOS/main/install.lua install
+wget https://raw.githubusercontent.com/JoaoPedroArriaga/BlocOS/main/install.lua install
 install
 os.reboot()
 ```
