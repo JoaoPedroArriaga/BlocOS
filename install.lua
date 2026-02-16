@@ -12,13 +12,15 @@ elseif turtle ~= nil then
     device = "Turtle"
 end
 
--- Colors
-local colors = {
+-- Cores (renomeado para não conflitar com a global 'colors')
+local theme = {
     header = colors.cyan,
     success = colors.green,
     error = colors.red,
     warning = colors.yellow,
-    text = colors.white
+    text = colors.white,
+    bg = colors.black,
+    gray = colors.gray
 }
 
 -- Draw progress bar
@@ -28,8 +30,8 @@ local function drawProgress(percent, text)
     local barX = math.floor((w - barWidth) / 2)
     local barY = math.floor(h / 2)
     
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.header)
+    term.setBackgroundColor(theme.bg)
+    term.setTextColor(theme.header)
     term.setCursorPos(barX, barY - 3)
     term.write("╔══════════════════════════════════╗")
     term.setCursorPos(barX, barY - 2)
@@ -37,23 +39,23 @@ local function drawProgress(percent, text)
     term.setCursorPos(barX, barY - 1)
     term.write("╚══════════════════════════════════╝")
     
-    term.setTextColor(colors.text)
+    term.setTextColor(theme.text)
     term.setCursorPos(barX, barY + 1)
     term.write("Device: " .. device)
     
     -- Progress bar
-    term.setBackgroundColor(colors.gray)
+    term.setBackgroundColor(theme.gray)
     term.setCursorPos(barX, barY + 3)
     term.write("[" .. string.rep(" ", barWidth) .. "]")
     
     local filled = math.floor(barWidth * percent / 100)
-    term.setBackgroundColor(colors.success)
+    term.setBackgroundColor(theme.success)
     term.setCursorPos(barX + 1, barY + 3)
     term.write(string.rep("█", filled))
     
     -- Text
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.text)
+    term.setBackgroundColor(theme.bg)
+    term.setTextColor(theme.text)
     term.setCursorPos(barX, barY + 5)
     term.write(text)
 end
@@ -79,26 +81,26 @@ local function downloadFile(path, desc)
         f.write(content)
         f.close()
         
-        term.setTextColor(colors.success)
+        term.setTextColor(theme.success)
         print("OK")
-        term.setTextColor(colors.text)
+        term.setTextColor(theme.text)
         return true
     else
-        term.setTextColor(colors.error)
+        term.setTextColor(theme.error)
         print("FAILED")
-        term.setTextColor(colors.text)
+        term.setTextColor(theme.text)
         return false
     end
 end
 
 -- Welcome screen
 term.clear()
-term.setTextColor(colors.header)
+term.setTextColor(theme.header)
 print("╔══════════════════════════════════╗")
 print("║         BlocOS Installer         ║")
 print("╚══════════════════════════════════╝")
 print()
-term.setTextColor(colors.text)
+term.setTextColor(theme.text)
 print("This installer will download and install")
 print("BlocOS on your " .. device .. ".")
 print()
@@ -160,7 +162,7 @@ print("  Startup file... OK")
 
 -- Final message
 term.clear()
-term.setTextColor(success and colors.success or colors.warning)
+term.setTextColor(success and theme.success or theme.warning)
 print("╔══════════════════════════════════╗")
 if success then
     print("║   BlocOS Installed Successfully! ║")
@@ -170,7 +172,7 @@ else
 end
 print("╚══════════════════════════════════╝")
 print()
-term.setTextColor(colors.text)
+term.setTextColor(theme.text)
 print("✅ Version: " .. VERSION)
 print("✅ Device: " .. device)
 print("✅ Files: " .. #files)
@@ -183,11 +185,11 @@ print()
 print("🌐 GitHub: https://github.com/JoaoPedroArriaga/BlocOS")
 print()
 if not success then
-    term.setTextColor(colors.warning)
+    term.setTextColor(theme.warning)
     print("⚠️  Some files failed to download.")
     print("   Check your internet connection")
     print("   and try again.")
     print()
 end
-term.setTextColor(colors.text)
+term.setTextColor(theme.text)
 print("Thank you for installing BlocOS!")
