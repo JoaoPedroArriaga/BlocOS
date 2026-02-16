@@ -1,5 +1,4 @@
--- home.lua - BlocOS Home Screen
--- VERSÃO FINAL - TECLAS FUNCIONAM GARANTIDO
+-- home.lua - Versão com comparação de strings
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
@@ -28,23 +27,22 @@ local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
 -- ==========================================
--- KEYHANDLER GLOBAL (SOLUÇÃO DEFINITIVA)
+-- KEYHANDLER GLOBAL (CORRIGIDO)
 -- ==========================================
 
--- Criar um frame invisível que cobre a tela inteira para capturar teclas
+-- Criar um frame invisível
 local keyCatcher = main:addFrame()
     :setPosition(1, 1)
     :setSize(w, h)
     :setBackground(colors.bg)
-    :setForeground(colors.bg)
 
--- Garantir que o frame seja transparente (só para capturar eventos)
-keyCatcher:setBackground(colors.bg)
-
--- Agora sim, as teclas SEMPRE funcionam!
+-- SOLUÇÃO: Converter a tecla para string e comparar
 keyCatcher:onKey(function(key)
-    if key == keys.q then
-        -- Menu simples
+    -- Converter para string para comparar
+    local keyStr = tostring(key)
+    
+    -- Menu com Q
+    if keyStr == "q" or keyStr == "16" or keyStr == "44d5b20b" then
         term.clear()
         print("BLOCOS MENU")
         print("===========")
@@ -60,8 +58,8 @@ keyCatcher:onKey(function(key)
             os.shutdown()
         end
         
-    elseif key == keys.f1 then
-        -- Ajuda
+    -- Ajuda com F1
+    elseif keyStr == "f1" or keyStr == "59" or keyStr == "f1" then
         term.clear()
         print("BLOCOS HELP")
         print("===========")
@@ -76,12 +74,7 @@ keyCatcher:onKey(function(key)
     end
 end)
 
--- Garantir que o keyCatcher sempre tenha foco
-keyCatcher:onClick(function()
-    -- Apenas para garantir que o objeto tenha foco
-end)
-
--- Dar foco inicial
+keyCatcher:onClick(function() end)
 keyCatcher:setFocus()
 
 -- ==========================================
@@ -92,13 +85,11 @@ local statusBar = main:addFrame()
     :setSize(w, 1)
     :setBackground(colors.accent1)
 
--- Logo
 statusBar:addLabel()
     :setPosition(2, 1)
     :setText(" BLOCOS ")
     :setForeground(colors.bg)
 
--- Relógio
 local clock = statusBar:addLabel()
     :setPosition(w - 10, 1)
     :setText(os.date("%H:%M:%S"))
@@ -115,19 +106,16 @@ local function createCard(x, y, title, value, icon, color)
         :setSize(18, 5)
         :setBackground(colors.panel)
     
-    -- Ícone
     card:addLabel()
         :setPosition(2, 2)
         :setText("[" .. icon .. "]")
         :setForeground(color)
     
-    -- Título
     card:addLabel()
         :setPosition(5, 2)
         :setText(title)
         :setForeground(colors.text)
     
-    -- Valor
     card:addLabel()
         :setPosition(5, 3)
         :setText(value)
