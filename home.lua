@@ -1,4 +1,5 @@
--- home.lua - Versão com comparação de strings
+-- home.lua - BlocOS Home Screen
+-- Versão para Basalt (usa nomes de teclas)
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
@@ -27,7 +28,7 @@ local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
 -- ==========================================
--- KEYHANDLER GLOBAL (CORRIGIDO)
+-- KEYHANDLER GLOBAL (CORRETO PARA BASALT)
 -- ==========================================
 
 -- Criar um frame invisível
@@ -36,13 +37,13 @@ local keyCatcher = main:addFrame()
     :setSize(w, h)
     :setBackground(colors.bg)
 
--- SOLUÇÃO: Converter a tecla para string e comparar
+-- No Basalt, a tecla vem com um nome/número especial
 keyCatcher:onKey(function(key)
-    -- Converter para string para comparar
+    -- Converter para string para diagnóstico (se precisar)
     local keyStr = tostring(key)
     
-    -- Menu com Q
-    if keyStr == "q" or keyStr == "16" or keyStr == "44d5b20b" then
+    -- Menu com Q - tentando diferentes formas
+    if key == "q" or key == 16 or key == keys.q or keyStr == "q" then
         term.clear()
         print("BLOCOS MENU")
         print("===========")
@@ -59,7 +60,7 @@ keyCatcher:onKey(function(key)
         end
         
     -- Ajuda com F1
-    elseif keyStr == "f1" or keyStr == "59" or keyStr == "f1" then
+    elseif key == "f1" or key == 59 or key == keys.f1 or keyStr == "f1" then
         term.clear()
         print("BLOCOS HELP")
         print("===========")
