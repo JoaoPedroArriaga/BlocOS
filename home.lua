@@ -1,14 +1,13 @@
 -- home.lua - BlocOS Home Screen
--- Versão corrigida - problema no onKeyPress resolvido
+-- Versão corrigida com métodos reais do Basalt
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
 
 -- Detectar dispositivo
 local isPocket = pocket ~= nil
-local isAdvanced = term.isColor and term.isColor()
 
--- Cores do tema
+-- Cores seguras para Minecraft
 local colors = {
     bg = colors.black,
     text = colors.white,
@@ -18,8 +17,7 @@ local colors = {
     accent4 = colors.yellow,
     accent5 = colors.red,
     highlight = colors.lime,
-    panel = colors.gray,
-    shadow = colors.gray
+    panel = colors.gray
 }
 
 -- Tamanho da tela
@@ -30,7 +28,7 @@ local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
 -- ==========================================
--- BARRA DE STATUS
+-- BARRA DE STATUS (MÉTODOS CORRETOS)
 -- ==========================================
 local statusBar = main:addFrame()
     :setPosition(1, 1)
@@ -50,7 +48,7 @@ local clock = statusBar:addLabel()
     :setForeground(colors.bg)
 
 -- ==========================================
--- WIDGETS
+-- CARDS DE INFORMAÇÃO
 -- ==========================================
 
 -- Função para criar cards
@@ -60,12 +58,8 @@ local function createCard(x, y, title, value, icon, color)
         :setSize(18, 5)
         :setBackground(colors.panel)
     
-    -- Borda
-    card:addLabel()
-        :setPosition(1, 1)
-        :setSize(18, 5)
-        :setBackground(colors.shadow)
-        :setText("")
+    -- Borda (usando método addBorder se existir, senão apenas background)
+    card:setBackground(colors.panel)
     
     -- Ícone
     card:addLabel()
@@ -88,10 +82,10 @@ local function createCard(x, y, title, value, icon, color)
     return card
 end
 
--- Criar cards de informação
-local cpuCard = createCard(3, 3, "CPU", "2%", "⚡", colors.accent1)
-local memCard = createCard(23, 3, "RAM", "128KB", "📊", colors.accent2)
-local diskCard = createCard(43, 3, "DISK", "45%", "💾", colors.accent3)
+-- Criar cards
+local cpuCard = createCard(3, 3, "CPU", "2%", "C", colors.accent1)
+local memCard = createCard(23, 3, "RAM", "128KB", "M", colors.accent2)
+local diskCard = createCard(43, 3, "DISK", "45%", "D", colors.accent3)
 
 -- ==========================================
 -- LISTA DE APPS
@@ -99,15 +93,15 @@ local diskCard = createCard(43, 3, "DISK", "45%", "💾", colors.accent3)
 
 main:addLabel()
     :setPosition(3, 9)
-    :setText("📱 APPS DISPONÍVEIS")
+    :setText("APPS DISPONIVEIS")
     :setForeground(colors.accent4)
 
 -- Apps pré-definidos
 local apps = {
-    {name = "App Store", icon = "📦", color = colors.accent1, file = "apps/store.lua"},
-    {name = "Chat", icon = "💬", color = colors.accent2, file = "apps/chat.lua"},
-    {name = "Monitor", icon = "📊", color = colors.accent3, file = "apps/monitor.lua"},
-    {name = "Config", icon = "⚙", color = colors.accent4, file = "apps/settings.lua"}
+    {name = "App Store", file = "apps/store.lua", icon = "S", color = colors.accent1},
+    {name = "Chat", file = "apps/chat.lua", icon = "C", color = colors.accent2},
+    {name = "Monitor", file = "apps/monitor.lua", icon = "M", color = colors.accent3},
+    {name = "Config", file = "apps/settings.lua", icon = "G", color = colors.accent4}
 }
 
 -- Criar botões para cada app
@@ -128,7 +122,7 @@ for i, app in ipairs(apps) do
     -- Ícone
     appFrame:addLabel()
         :setPosition(2, 2)
-        :setText(app.icon)
+        :setText("[" .. app.icon .. "]")
         :setForeground(app.color)
     
     -- Nome
@@ -137,25 +131,19 @@ for i, app in ipairs(apps) do
         :setText(app.name)
         :setForeground(colors.text)
     
-    -- Botão de abrir (invisível, mas clicável)
-    local btn = appFrame:addButton()
-        :setPosition(1, 1)
-        :setSize(20, 3)
-        :setText("")
-        :setBackground(colors.panel)
-        :setForeground(colors.panel)
-        :onClick(function()
-            term.clear()
-            shell.run(app.file)
-        end)
+    -- Botão (usando onClick direto no frame)
+    appFrame:onClick(function()
+        term.clear()
+        shell.run(app.file)
+    end)
     
-    -- Efeito hover
-    btn:onHover(function()
+    -- Efeito hover (usando eventos de mouse)
+    appFrame:onHover(function()
         appFrame:setBackground(colors.highlight)
-        btn:setBackground(colors.highlight)
-    end, function()
+    end)
+    
+    appFrame:onLeave(function()
         appFrame:setBackground(colors.panel)
-        btn:setBackground(colors.panel)
     end)
 end
 
@@ -169,129 +157,45 @@ local footer = main:addFrame()
 
 footer:addLabel()
     :setPosition(3, 1)
-    :setText(" Q: Menu | F1: Ajuda | Clique nos apps para abrir")
+    :setText(" Q: Menu | F1: Ajuda | Clique nos apps")
     :setForeground(colors.bg)
 
 -- ==========================================
--- CORREÇÃO: SISTEMA DE TECLAS (ANTES DAVA ERRO)
+-- SISTEMA DE TECLAS (MÉTODO CORRETO: onKey)
 -- ==========================================
 
--- Criar um frame invisível para capturar teclas (solução para o erro)
-local keyHandler = main:addFrame()
-    :setPosition(1, 1)
-    :setSize(1, 1)
-    :setBackground(colors.bg)
-
--- Agora sim, o onKeyPress funciona corretamente
-keyHandler:onKeyPress(function(key)
+-- O método correto é onKey, não onKeyPress
+main:onKey(function(key)
     if key == keys.q then
-        -- Menu de saída
-        local menu = main:addFrame()
-            :setPosition(30, 10)
-            :setSize(20, 8)
-            :setBackground(colors.panel)
-        
-        -- Sombra
-        main:addLabel()
-            :setPosition(31, 11)
-            :setSize(20, 8)
-            :setBackground(colors.shadow)
-            :setText("")
-        
-        menu:addLabel()
-            :setPosition(3, 2)
-            :setText("⚙️ BLOCOS MENU")
-            :setForeground(colors.accent1)
-        
-        local opt1 = menu:addButton()
-            :setPosition(3, 4)
-            :setSize(14, 1)
-            :setText("1. Reiniciar")
-            :setBackground(colors.panel)
-            :setForeground(colors.text)
-            :onClick(function() os.reboot() end)
-        
-        local opt2 = menu:addButton()
-            :setPosition(3, 5)
-            :setSize(14, 1)
-            :setText("2. Desligar")
-            :setBackground(colors.panel)
-            :setForeground(colors.text)
-            :onClick(function() os.shutdown() end)
-        
-        local opt3 = menu:addButton()
-            :setPosition(3, 6)
-            :setSize(14, 1)
-            :setText("3. Cancelar")
-            :setBackground(colors.panel)
-            :setForeground(colors.text)
-            :onClick(function() menu:remove() end)
-        
-        -- Efeitos hover
-        local function addHover(btn)
-            btn:onHover(function()
-                btn:setBackground(colors.highlight)
-                btn:setForeground(colors.bg)
-            end, function()
-                btn:setBackground(colors.panel)
-                btn:setForeground(colors.text)
-            end)
+        -- Menu simples
+        term.clear()
+        print("BLOCOS MENU")
+        print("===========")
+        print("1. Reiniciar")
+        print("2. Desligar")
+        print("3. Cancelar")
+        print()
+        write("Escolha: ")
+        local opt = read()
+        if opt == "1" then
+            os.reboot()
+        elseif opt == "2" then
+            os.shutdown()
         end
         
-        addHover(opt1)
-        addHover(opt2)
-        addHover(opt3)
-        
     elseif key == keys.f1 then
-        -- Tela de ajuda
-        local helpFrame = main:addFrame()
-            :setPosition(25, 8)
-            :setSize(30, 12)
-            :setBackground(colors.panel)
-        
-        helpFrame:addLabel()
-            :setPosition(3, 2)
-            :setText("📚 BLOCOS HELP")
-            :setForeground(colors.accent1)
-        
-        helpFrame:addLabel()
-            :setPosition(3, 4)
-            :setText("Comandos:")
-            :setForeground(colors.accent3)
-        
-        helpFrame:addLabel()
-            :setPosition(5, 5)
-            :setText("Q - Menu principal")
-            :setForeground(colors.text)
-        
-        helpFrame:addLabel()
-            :setPosition(5, 6)
-            :setText("F1 - Esta ajuda")
-            :setForeground(colors.text)
-        
-        helpFrame:addLabel()
-            :setPosition(5, 7)
-            :setText("Clique nos apps para abrir")
-            :setForeground(colors.text)
-        
-        helpFrame:addLabel()
-            :setPosition(3, 9)
-            :setText("Versão: " .. VERSION)
-            :setForeground(colors.accent2)
-        
-        local closeBtn = helpFrame:addButton()
-            :setPosition(12, 11)
-            :setSize(6, 1)
-            :setText("[OK]")
-            :setBackground(colors.accent3)
-            :setForeground(colors.bg)
-            :onClick(function() helpFrame:remove() end)
-        
-        closeBtn:onHover(function()
-            closeBtn:setBackground(colors.highlight)
-        end, function()
-            closeBtn:setBackground(colors.accent3)
-        end)
+        -- Ajuda
+        term.clear()
+        print("BLOCOS HELP")
+        print("===========")
+        print("Q - Menu principal")
+        print("F1 - Esta ajuda")
+        print("Clique nos apps para abrir")
+        print()
+        print("Versao: " .. VERSION)
+        print()
+        print("Pressione qualquer tecla")
+        os.pullEvent("key")
     end
 end)
 
@@ -309,25 +213,20 @@ end
 
 -- Atualizar estatísticas (simulado)
 local function updateStats()
-    local cpu = 2
-    local mem = 128
-    local disk = 45
-    
     while true do
         -- Simular variação
-        cpu = math.random(1, 10)
-        mem = 128 + math.random(-5, 5)
-        disk = 45 + math.random(-2, 2)
+        local cpu = math.random(1, 10)
+        local mem = 128 + math.random(-5, 5)
+        local disk = 45 + math.random(-2, 2)
         
-        -- Atualizar cards
-        cpuCard:removeChildren()
-        cpuCard = createCard(3, 3, "CPU", cpu .. "%", "⚡", colors.accent1)
+        -- Atualizar cards (recriar é mais simples que modificar)
+        cpuCard:remove()
+        memCard:remove()
+        diskCard:remove()
         
-        memCard:removeChildren()
-        memCard = createCard(23, 3, "RAM", mem .. "KB", "📊", colors.accent2)
-        
-        diskCard:removeChildren()
-        diskCard = createCard(43, 3, "DISK", disk .. "%", "💾", colors.accent3)
+        cpuCard = createCard(3, 3, "CPU", cpu .. "%", "C", colors.accent1)
+        memCard = createCard(23, 3, "RAM", mem .. "KB", "M", colors.accent2)
+        diskCard = createCard(43, 3, "DISK", disk .. "%", "D", colors.accent3)
         
         sleep(5)
     end

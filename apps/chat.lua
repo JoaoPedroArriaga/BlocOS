@@ -1,14 +1,12 @@
 -- apps/chat.lua - BlocOS Chat App
--- App de chat multiplayer para o BlocOS
+-- Versão corrigida com métodos reais do Basalt
 
 local basalt = require("basalt")
 local VERSION = "1.0.0"
 
--- Configurações de rede
 local REDNET_PORT = 12345
-local SERVER_ID = nil
 
--- Cores do tema
+-- Cores seguras
 local colors = {
     bg = colors.black,
     text = colors.white,
@@ -19,36 +17,25 @@ local colors = {
     accent5 = colors.red,
     highlight = colors.lime,
     panel = colors.gray,
-    myMessage = colors.lime,
-    otherMessage = colors.lightGray,
-    system = colors.purple,
     online = colors.green,
     offline = colors.gray
 }
 
--- Tamanho da tela
 local w, h = term.getSize()
-
--- Criar frame principal
 local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
--- ==========================================
--- ESTADO DO APP
--- ==========================================
-
+-- Estado
 local app = {
     user = "",
     serverId = nil,
     connected = false,
     messages = {},
-    users = {},
-    currentRoom = "general",
-    status = "offline"
+    users = {}
 }
 
 -- ==========================================
--- FUNÇÕES DE REDE
+-- FUNCOES DE REDE
 -- ==========================================
 
 local function findModem()
@@ -67,15 +54,12 @@ end
 local function connectToServer()
     local modem = findModem()
     if not modem then
-        return false, "No modem found"
+        return false, "Sem modem"
     end
     
     rednet.open(modem)
-    
-    -- Broadcast para encontrar servidor
     rednet.broadcast("CHAT_HELLO|" .. app.user, tostring(REDNET_PORT))
     
-    -- Aguardar resposta
     local timeout = os.time() + 5
     while os.time() < timeout do
         local id, msg = rednet.receive(tostring(REDNET_PORT), 1)
@@ -84,93 +68,74 @@ local function connectToServer()
             for part in string.gmatch(msg, "[^|]+") do
                 table.insert(parts, part)
             end
-            
             if parts[1] == "CHAT_WELCOME" then
                 app.serverId = id
                 app.connected = true
-                app.status = "online"
-                return true, "Connected"
+                return true, "Conectado"
             end
         end
     end
     
     rednet.close(modem)
-    return false, "Server not found"
+    return false, "Servidor nao encontrado"
 end
 
--- ==========================================
--- INTERFACE DO CHAT
--- ==========================================
-
--- Cabeçalho
-local header = main:addFrame()
-    :setPosition(1, 1)
-    :setSize(w, 3)
-    :setBackground(colors.accent1)
-
--- Título
-header:addLabel()
-    :setPosition(3, 1)
-    :setText("💬 BLOCOS CHAT")
-    :setForeground(colors.bg)
-
--- Status da conexão
-local statusLabel = header:addLabel()
-    :setPosition(w - 15, 1)
-    :setText("[Desconectado]")
-    :setForeground(colors.accent5)
-
--- Usuário logado
-header:addLabel()
-    :setPosition(3, 2)
-    :setText("Usuário: " .. (app.user ~= "" and app.user or "Não logado"))
-    :setForeground(colors.bg)
-
--- Botão de voltar
-local backBtn = header:addButton()
-    :setPosition(2, 3)
-    :setSize(8, 1)
-    :setText("← Home")
-    :setBackground(colors.accent5)
-    :setForeground(colors.white)
-    :onClick(function() shell.run("home") end)
-
--- ==========================================
--- PAINEL DE USUÁRIOS (LATERAL)
--- ==========================================
-
-local userPanel = main:addFrame()
-    :setPosition(w - 20, 4)
-    :setSize(18, h - 8)
-    :setBackground(colors.panel)
-
-userPanel:addLabel()
-    :setPosition(2, 1)
-    :setText("👥 Online")
-    :setForeground(colors.accent1)
-
--- Lista de usuários
-local userList = userPanel:addFrame()
-    :setPosition(2, 3)
-    :setSize(16, h - 12)
-    :setBackground(colors.panel)
-
-local function updateUserList()
-    userList:removeChildren()
-    local y = 1
-    for _, user in ipairs(app.users) do
-        local u = userList:addLabel()
-            :setPosition(1, y)
-            :setText("● " .. user)
-            :setForeground(colors.online)
-        y = y + 1
+local function disconnect()
+    if app.connected then
+        rednet.send(app.serverId, "CHAT_QUIT|" .. app.user, tostring(REDNET_PORT))
+        local modem = findModem()
+        if modem then
+            rednet.close(modem)
+        end
+        app.connected = false
     end
 end
 
 -- ==========================================
-=-- ÁREA DE MENSAGENS
+-- INTERFACE
 -- ==========================================
 
+-- Cabecalho
+local header = main:addFrame()
+    :setPosition(1, 1)
+    :setSize(w, 2)
+    :setBackground(colors.accent1)
+
+header:addLabel()
+    :setPosition(3, 1)
+    :setText("CHAT")
+    :setForeground(colors.bg)
+
+local statusLabel = header:addLabel()
+    :setPosition(w - 15, 1)
+    :setText("[ Desconectado ]")
+    :setForeground(colors.accent5)
+
+local backBtn = header:addButton()
+    :setPosition(2, 2)
+    :setSize(8, 1)
+    :setText("[ Home ]")
+    :setBackground(colors.accent5)
+    :setForeground(colors.text)
+    :onClick(function() shell.run("home") end)
+
+-- Painel de usuarios
+local userPanel = main:addFrame()
+    :setPosition(w - 20, 4)
+    :setSize(18, h - 6)
+    :setBackground(colors.panel)
+
+userPanel:addLabel()
+    :setPosition(2, 1)
+    :setText("Usuarios")
+    :setForeground(colors.accent1)
+
+local userList = userPanel:addFrame()
+    :setPosition(2, 3)
+    :setSize(16, h - 10)
+    :setBackground(colors.panel)
+
+-- Area de mensagens
 local msgArea = main:addFrame()
     :setPosition(3, 4)
     :setSize(w - 25, h - 6)
@@ -181,44 +146,7 @@ local msgList = msgArea:addFrame()
     :setSize(w - 27, h - 8)
     :setBackground(colors.bg)
 
-local function addMessage(msg, type, user)
-    table.insert(app.messages, {
-        text = msg,
-        type = type,
-        user = user,
-        time = os.date("%H:%M")
-    })
-    
-    -- Manter só últimas 50 mensagens
-    if #app.messages > 50 then
-        table.remove(app.messages, 1)
-    end
-    
-    -- Atualizar display
-    msgList:removeChildren()
-    local y = #app.messages
-    for i, m in ipairs(app.messages) do
-        local line = msgList:addLabel()
-            :setPosition(1, i)
-            :setText("")
-        
-        if m.type == "system" then
-            line:setText("[" .. m.time .. "] " .. m.text)
-            line:setForeground(colors.system)
-        elseif m.type == "mine" then
-            line:setText("[" .. m.time .. "] Você: " .. m.text)
-            line:setForeground(colors.myMessage)
-        else
-            line:setText("[" .. m.time .. "] " .. m.user .. ": " .. m.text)
-            line:setForeground(colors.otherMessage)
-        end
-    end
-end
-
--- ==========================================
--- CAMPO DE INPUT
--- ==========================================
-
+-- Campo de input
 local inputFrame = main:addFrame()
     :setPosition(3, h - 2)
     :setSize(w - 25, 1)
@@ -233,182 +161,159 @@ local inputField = inputFrame:addInput()
 
 local sendBtn = inputFrame:addButton()
     :setPosition(w - 28, 1)
-    :setSize(6, 1)
-    :setText("[Enviar]")
+    :setSize(8, 1)
+    :setText("[ Enviar ]")
     :setBackground(colors.accent3)
-    :setForeground(colors.white)
-    :onClick(function()
-        local text = inputField:getText()
-        if text ~= "" then
-            if text:sub(1,1) == "/" then
-                handleCommand(text)
-            else
-                rednet.send(app.serverId, "CHAT_MSG|" .. app.user .. "|" .. text, tostring(REDNET_PORT))
-                addMessage(text, "mine")
-            end
-            inputField:setText("")
-        end
-    end)
+    :setForeground(colors.text)
+    :onClick(function() sendMessage() end)
 
--- Enter para enviar
+-- ==========================================
+-- FUNCOES DO CHAT
+-- ==========================================
+
+local function sendMessage()
+    local text = inputField:getText()
+    if text ~= "" then
+        rednet.send(app.serverId, "CHAT_MSG|" .. app.user .. "|" .. text, tostring(REDNET_PORT))
+        addMessage(text, "voce")
+        inputField:setText("")
+    end
+end
+
 inputField:onSubmit(function(text)
     if text ~= "" then
-        if text:sub(1,1) == "/" then
-            handleCommand(text)
-        else
-            rednet.send(app.serverId, "CHAT_MSG|" .. app.user .. "|" .. text, tostring(REDNET_PORT))
-            addMessage(text, "mine")
-        end
+        rednet.send(app.serverId, "CHAT_MSG|" .. app.user .. "|" .. text, tostring(REDNET_PORT))
+        addMessage(text, "voce")
         inputField:setText("")
     end
 end)
 
--- ==========================================
--- COMANDOS
--- ==========================================
-
-local function handleCommand(cmd)
-    local parts = {}
-    for p in string.gmatch(cmd, "%S+") do
-        table.insert(parts, p)
+local function addMessage(text, tipo, user)
+    local msg = {
+        text = text,
+        tipo = tipo,
+        user = user,
+        hora = os.date("%H:%M")
+    }
+    table.insert(app.messages, msg)
+    if #app.messages > 50 then
+        table.remove(app.messages, 1)
     end
     
-    local command = parts[1]
-    
-    if command == "/ajuda" or command == "/help" then
-        addMessage("Comandos disponíveis:", "system")
-        addMessage("/users - Listar usuários", "system")
-        addMessage("/clear - Limpar tela", "system")
-        addMessage("/sair - Sair do chat", "system")
+    msgList:removeChildren()
+    local y = 1
+    for _, m in ipairs(app.messages) do
+        local line = msgList:addLabel()
+            :setPosition(1, y)
+            :setText("")
         
-    elseif command == "/users" then
-        rednet.send(app.serverId, "CHAT_USERS", tostring(REDNET_PORT))
-        
-    elseif command == "/clear" then
-        app.messages = {}
-        msgList:removeChildren()
-        
-    elseif command == "/sair" then
-        disconnect()
-        shell.run("home")
+        if m.tipo == "sistema" then
+            line:setText("[" .. m.hora .. "] " .. m.text)
+            line:setForeground(colors.accent4)
+        elseif m.tipo == "voce" then
+            line:setText("[" .. m.hora .. "] Voce: " .. m.text)
+            line:setForeground(colors.accent3)
+        else
+            line:setText("[" .. m.hora .. "] " .. m.user .. ": " .. m.text)
+            line:setForeground(colors.text)
+        end
+        y = y + 1
     end
 end
 
--- ==========================================
--- CONEXÃO
--- ==========================================
-
-local function disconnect()
-    if app.connected then
-        rednet.send(app.serverId, "CHAT_QUIT|" .. app.user, tostring(REDNET_PORT))
-        local modem = findModem()
-        if modem then
-            rednet.close(modem)
-        end
-        app.connected = false
-        app.status = "offline"
+local function updateUserList()
+    userList:removeChildren()
+    local y = 1
+    for _, user in ipairs(app.users) do
+        userList:addLabel()
+            :setPosition(1, y)
+            :setText("[O] " .. user)
+            :setForeground(colors.online)
+        y = y + 1
     end
 end
 
 -- ==========================================
 -- TELA DE LOGIN
 -- ==========================================
+local loginFrame = main:addFrame()
+    :setPosition(20, 8)
+    :setSize(30, 8)
+    :setBackground(colors.panel)
 
-local function showLogin()
-    -- Frame de login
-    local loginFrame = main:addFrame()
-        :setPosition(20, 8)
-        :setSize(30, 8)
-        :setBackground(colors.panel)
-    
-    loginFrame:addLabel()
-        :setPosition(3, 2)
-        :setText("🔐 Login no Chat")
-        :setForeground(colors.accent1)
-    
-    loginFrame:addLabel()
-        :setPosition(3, 4)
-        :setText("Seu nome:")
-        :setForeground(colors.white)
-    
-    local nameInput = loginFrame:addInput()
-        :setPosition(3, 5)
-        :setSize(20, 1)
-        :setBackground(colors.bg)
-        :setForeground(colors.text)
-    
-    local loginBtn = loginFrame:addButton()
-        :setPosition(10, 7)
-        :setSize(10, 1)
-        :setText("[Conectar]")
-        :setBackground(colors.accent3)
-        :setForeground(colors.white)
-        :onClick(function()
-            local name = nameInput:getText()
-            if name ~= "" then
-                app.user = name
-                loginFrame:remove()
+loginFrame:addLabel()
+    :setPosition(3, 2)
+    :setText("LOGIN")
+    :setForeground(colors.accent1)
+
+loginFrame:addLabel()
+    :setPosition(3, 4)
+    :setText("Seu nome:")
+    :setForeground(colors.text)
+
+local nameInput = loginFrame:addInput()
+    :setPosition(3, 5)
+    :setSize(20, 1)
+    :setBackground(colors.bg)
+    :setForeground(colors.text)
+
+local loginBtn = loginFrame:addButton()
+    :setPosition(10, 7)
+    :setSize(10, 1)
+    :setText("[ Conectar ]")
+    :setBackground(colors.accent3)
+    :setForeground(colors.text)
+    :onClick(function()
+        local name = nameInput:getText()
+        if name ~= "" then
+            app.user = name
+            loginFrame:remove()
+            
+            local ok, err = connectToServer()
+            if ok then
+                statusLabel:setText("[ Conectado ]")
+                statusLabel:setForeground(colors.accent3)
+                addMessage("Conectado ao servidor", "sistema")
                 
-                -- Tentar conectar
-                local ok, err = connectToServer()
-                if ok then
-                    statusLabel:setText("[Conectado]")
-                    statusLabel:setForeground(colors.accent3)
-                    addMessage("Conectado ao servidor!", "system")
-                    addMessage("Digite /ajuda para comandos", "system")
-                    
-                    -- Thread de recebimento
-                    parallel.waitForAny(
-                        function()
-                            while app.connected do
-                                local id, msg = rednet.receive(tostring(REDNET_PORT), 1)
-                                if id and id == app.serverId then
-                                    local parts = {}
-                                    for p in string.gmatch(msg, "[^|]+") do
-                                        table.insert(parts, p)
+                -- Thread de recebimento
+                parallel.waitForAny(
+                    function()
+                        while app.connected do
+                            local id, msg = rednet.receive(tostring(REDNET_PORT), 1)
+                            if id and id == app.serverId then
+                                local parts = {}
+                                for p in string.gmatch(msg, "[^|]+") do
+                                    table.insert(parts, p)
+                                end
+                                if parts[1] == "CHAT_MSG" and #parts >= 3 then
+                                    addMessage(parts[3], "outro", parts[2])
+                                elseif parts[1] == "CHAT_USERS" and #parts >= 2 then
+                                    app.users = {}
+                                    for u in string.gmatch(parts[2], "[^,]+") do
+                                        table.insert(app.users, u)
                                     end
-                                    
-                                    if parts[1] == "CHAT_MSG" and #parts >= 3 then
-                                        addMessage(parts[3], "other", parts[2])
-                                    elseif parts[1] == "CHAT_USERS" and #parts >= 2 then
-                                        app.users = {}
-                                        for u in string.gmatch(parts[2], "[^,]+") do
-                                            table.insert(app.users, u)
-                                        end
-                                        updateUserList()
-                                    elseif parts[1] == "CHAT_SYSTEM" and #parts >= 2 then
-                                        addMessage(parts[2], "system")
-                                    end
+                                    updateUserList()
+                                elseif parts[1] == "CHAT_SYSTEM" and #parts >= 2 then
+                                    addMessage(parts[2], "sistema")
                                 end
                             end
-                        end,
-                        function() basalt.autoUpdate() end
-                    )
-                    
-                else
-                    statusLabel:setText("[Falha]")
-                    statusLabel:setForeground(colors.accent5)
-                    addMessage("Erro: " .. err, "system")
-                end
+                        end
+                    end,
+                    function() basalt.autoUpdate() end
+                )
+            else
+                statusLabel:setText("[ Falha ]")
+                statusLabel:setForeground(colors.accent5)
+                addMessage("Erro: " .. err, "sistema")
             end
-        end)
-    
-    loginBtn:onHover(function()
-        loginBtn:setBackground(colors.highlight)
-    end, function()
-        loginBtn:setBackground(colors.accent3)
+        end
     end)
-end
 
--- ==========================================
--- INICIAR
--- ==========================================
-
-showLogin()
+loginBtn:onHover(function()
+    loginBtn:setBackground(colors.highlight)
+end)
+loginBtn:onLeave(function()
+    loginBtn:setBackground(colors.accent3)
+end)
 
 basalt.autoUpdate()
-
--- Garantir desconexão ao sair
-local function onExit()
-    disconnect()
-end

@@ -1,16 +1,15 @@
--- apps/store.lua - BlocOS App Store Dinâmica
--- Baixa o catálogo do GitHub automaticamente
+-- apps/store.lua - BlocOS App Store
+-- Versão corrigida com métodos reais do Basalt
 
 local basalt = require("basalt")
 local VERSION = "0.1.0"
 
--- Configuração do GitHub
-local REPO_OWNER = "JoaoPedroArriaga"  -- SEU usuário
+local REPO_OWNER = "JoaoPedroArriaga"
 local REPO_NAME = "BlocOS"
 local CATALOG_URL = "https://raw.githubusercontent.com/" .. REPO_OWNER .. "/" .. REPO_NAME .. "/main/catalog.lua"
 local APPS_URL = "https://raw.githubusercontent.com/" .. REPO_OWNER .. "/" .. REPO_NAME .. "/main/apps/"
 
--- Cores
+-- Cores seguras
 local colors = {
     bg = colors.black,
     text = colors.white,
@@ -23,58 +22,61 @@ local colors = {
     panel = colors.gray
 }
 
--- Tamanho da tela
 local w, h = term.getSize()
-
--- Criar frame principal
 local main = basalt.createFrame()
 main:setBackground(colors.bg)
 
+-- Estado
+local availableApps = {}
+local filteredApps = {}
+local selectedCategory = 1
+local categories = {"Todos", "Social", "Ferramentas", "Jogos", "Sistema"}
+
 -- ==========================================
--- CABEÇALHO
+-- CABECALHO
 -- ==========================================
 
--- Botão voltar
+-- Botao voltar (usando metodo correto: onClick)
 local backBtn = main:addButton()
     :setPosition(2, 2)
     :setSize(8, 1)
-    :setText("← Home")
+    :setText("[ Voltar ]")
     :setBackground(colors.accent5)
-    :setForeground(colors.white)
+    :setForeground(colors.text)
     :onClick(function() shell.run("home") end)
 
 backBtn:onHover(function()
     backBtn:setBackground(colors.highlight)
-end, function()
+end)
+backBtn:onLeave(function()
     backBtn:setBackground(colors.accent5)
 end)
 
--- Título
+-- Titulo
 main:addLabel()
     :setPosition(15, 2)
-    :setText("📦 BLOCOS APP STORE (DINÂMICA)")
+    :setText("APP STORE")
     :setForeground(colors.accent1)
 
--- Botão de atualizar
+-- Botao atualizar
 local refreshBtn = main:addButton()
     :setPosition(w - 15, 2)
     :setSize(10, 1)
-    :setText("[↻] Atualizar")
+    :setText("[ Atualizar ]")
     :setBackground(colors.accent3)
-    :setForeground(colors.white)
+    :setForeground(colors.text)
     :onClick(function() refreshCatalog() end)
 
 refreshBtn:onHover(function()
     refreshBtn:setBackground(colors.highlight)
-end, function()
+end)
+refreshBtn:onLeave(function()
     refreshBtn:setBackground(colors.accent3)
 end)
 
 -- ==========================================
 -- CATEGORIAS
 -- ==========================================
-local categories = {"Todos", "Social", "Ferramentas", "Jogos", "Sistema"}
-local selectedCategory = 1
 local categoryButtons = {}
 
 local function drawCategories()
@@ -85,17 +87,19 @@ local function drawCategories()
             :setSize(#cat + 4, 1)
             :setText(" " .. cat .. " ")
             :setBackground(i == selectedCategory and colors.accent1 or colors.panel)
-            :setForeground(colors.white)
+            :setForeground(colors.text)
             :onClick(function()
                 selectedCategory = i
                 filterApps()
+                redrawAppList()
             end)
         
         btn:onHover(function()
             if i ~= selectedCategory then
                 btn:setBackground(colors.highlight)
             end
-        end, function()
+        end)
+        btn:onLeave(function()
             if i ~= selectedCategory then
                 btn:setBackground(colors.panel)
             end
@@ -107,220 +111,132 @@ local function drawCategories()
 end
 
 -- ==========================================
--- CARREGAR CATÁLOGO DO GITHUB
+-- LISTA DE APPS
+-- ==========================================
+local listFrame = main:addFrame()
+    :setPosition(3, 6)
+    :setSize(w - 6, h - 10)
+    :setBackground(colors.bg)
+
+local function redrawAppList()
+    listFrame:removeChildren()
+    
+    local y = 1
+    for _, app in ipairs(filteredApps) do
+        local card = listFrame:addFrame()
+            :setPosition(2, y)
+            :setSize(w - 12, 4)
+            :setBackground(colors.panel)
+        
+        -- Nome
+        card:addLabel()
+            :setPosition(2, 1)
+            :setText(app.name)
+            :setForeground(colors.accent1)
+        
+        -- Descricao
+        card:addLabel()
+            :setPosition(2, 2)
+            :setText(app.desc or "Sem descricao")
+            :setForeground(colors.text)
+        
+        -- Botao de acao
+        local actionBtn
+        if app.installed then
+            actionBtn = card:addButton()
+                :setPosition(w - 20, 2)
+                :setSize(8, 1)
+                :setText("[ Abrir ]")
+                :setBackground(colors.accent3)
+                :setForeground(colors.text)
+                :onClick(function()
+                    term.clear()
+                    shell.run("apps/" .. app.file)
+                end)
+        else
+            actionBtn = card:addButton()
+                :setPosition(w - 20, 2)
+                :setSize(10, 1)
+                :setText("[ Instalar ]")
+                :setBackground(colors.accent1)
+                :setForeground(colors.text)
+                :onClick(function()
+                    installApp(app, card)
+                end)
+        end
+        
+        actionBtn:onHover(function()
+            actionBtn:setBackground(colors.highlight)
+        end)
+        actionBtn:onLeave(function()
+            if app.installed then
+                actionBtn:setBackground(colors.accent3)
+            else
+                actionBtn:setBackground(colors.accent1)
+            end
+        end)
+        
+        y = y + 5
+    end
+end
+
+-- ==========================================
+-- FUNCOES PRINCIPAIS
 -- ==========================================
 
-local availableApps = {}
-local filteredApps = {}
-local appCards = {}
-
--- Função para verificar se app está instalado
 local function isInstalled(app)
     return fs.exists("apps/" .. app.file)
 end
 
--- Função para carregar catálogo
+local function filterApps()
+    filteredApps = {}
+    for _, app in ipairs(availableApps) do
+        if selectedCategory == 1 or categories[selectedCategory] == app.category then
+            app.installed = isInstalled(app)
+            table.insert(filteredApps, app)
+        end
+    end
+end
+
 local function loadCatalog()
-    -- Mostrar loading
-    local loading = main:addFrame()
-        :setPosition(25, 10)
-        :setSize(30, 5)
-        :setBackground(colors.panel)
-    
-    loading:addLabel()
-        :setPosition(5, 2)
-        :setText("📦 Carregando catálogo...")
+    local loading = main:addLabel()
+        :setPosition(30, 10)
+        :setText("Carregando catalogo...")
         :setForeground(colors.accent1)
     
-    loading:addLabel()
-        :setPosition(5, 3)
-        :setText("Aguarde...")
-        :setForeground(colors.white)
-    
-    -- Tentar baixar do GitHub
     local response = http.get(CATALOG_URL)
     
     if response then
         local content = response.readAll()
         response.close()
-        
-        -- Executar o código do catálogo
         local fn, err = load(content)
         if fn then
             local success, catalog = pcall(fn)
             if success and type(catalog) == "table" then
                 availableApps = catalog
             else
-                availableApps = getFallbackCatalog()
+                availableApps = {}
             end
-        else
-            availableApps = getFallbackCatalog()
         end
-    else
-        availableApps = getFallbackCatalog()
-    end
-    
-    -- Atualizar status de instalação
-    for _, app in ipairs(availableApps) do
-        app.installed = isInstalled(app)
     end
     
     loading:remove()
+    filterApps()
+    redrawAppList()
 end
-
--- Catálogo de fallback (caso não consiga baixar)
-local function getFallbackCatalog()
-    return {
-        {
-            name = "Chat BlocOS",
-            desc = "App de chat básico",
-            category = "Social",
-            file = "chat.lua",
-            icon = "💬",
-            color = colors.accent2
-        },
-        {
-            name = "Store",
-            desc = "Esta app store",
-            category = "Sistema",
-            file = "store.lua",
-            icon = "📦",
-            color = colors.accent1,
-            system = true
-        }
-    }
-end
-
--- ==========================================
--- FILTRAR E EXIBIR APPS
--- ==========================================
-
-local listFrame = main:addFrame()
-    :setPosition(3, 6)
-    :setSize(w - 6, h - 10)
-    :setBackground(colors.bg)
-
-local function filterApps()
-    filteredApps = {}
-    for _, app in ipairs(availableApps) do
-        if selectedCategory == 1 or categories[selectedCategory] == app.category then
-            table.insert(filteredApps, app)
-        end
-    end
-    drawApps()
-end
-
-local function drawApps()
-    -- Limpar lista anterior
-    listFrame:removeChildren()
-    appCards = {}
-    
-    local y = 1
-    for _, app in ipairs(filteredApps) do
-        -- Card do app
-        local card = listFrame:addFrame()
-            :setPosition(2, y)
-            :setSize(w - 12, 4)
-            :setBackground(colors.panel)
-        
-        -- Sombra
-        listFrame:addLabel()
-            :setPosition(3, y + 1)
-            :setSize(w - 12, 4)
-            :setBackground(colors.panel)
-            :setText("")
-        
-        -- Ícone
-        card:addLabel()
-            :setPosition(2, 2)
-            :setText(app.icon)
-            :setForeground(app.color)
-        
-        -- Nome
-        card:addLabel()
-            :setPosition(5, 1)
-            :setText(app.name)
-            :setForeground(colors.white)
-        
-        -- Descrição
-        card:addLabel()
-            :setPosition(5, 2)
-            :setText(app.desc)
-            :setForeground(colors.gray)
-        
-        -- Autor e tamanho
-        if app.author and app.size then
-            card:addLabel()
-                :setPosition(5, 3)
-                :setText("por " .. app.author .. " • " .. app.size)
-                :setForeground(colors.gray)
-        end
-        
-        -- Botão
-        local btn
-        if app.system then
-            btn = card:addButton()
-                :setPosition(w - 20, 2)
-                :setSize(8, 1)
-                :setText("[Sistema]")
-                :setBackground(colors.panel)
-                :setForeground(colors.gray)
-        elseif app.installed then
-            btn = card:addButton()
-                :setPosition(w - 20, 2)
-                :setSize(8, 1)
-                :setText("[Abrir]")
-                :setBackground(colors.accent3)
-                :setForeground(colors.white)
-                :onClick(function()
-                    term.clear()
-                    shell.run("apps/" .. app.file)
-                end)
-        else
-            btn = card:addButton()
-                :setPosition(w - 20, 2)
-                :setSize(10, 1)
-                :setText("[Instalar]")
-                :setBackground(colors.accent1)
-                :setForeground(colors.white)
-                :onClick(function()
-                    installApp(app, card)
-                end)
-        end
-        
-        -- Hover no card
-        card:onHover(function()
-            if not app.system then
-                card:setBackground(colors.highlight)
-            end
-        end, function()
-            card:setBackground(colors.panel)
-        end)
-        
-        table.insert(appCards, {card = card, btn = btn, app = app})
-        y = y + 5
-    end
-end
-
--- ==========================================
--- INSTALAR APP
--- ==========================================
 
 local function installApp(app, card)
-    -- Desabilitar botão durante instalação
     local btn = card:getChildren()[#card:getChildren()]
     btn:setEnabled(false)
     btn:setText("[...]")
     
-    -- URL do app
-    local appUrl = APPS_URL .. app.file
-    local response = http.get(appUrl)
+    local url = APPS_URL .. app.file
+    local response = http.get(url)
     
     if response then
         local content = response.readAll()
         response.close()
         
-        -- Salvar
         if not fs.exists("apps") then
             fs.makeDir("apps")
         end
@@ -329,51 +245,35 @@ local function installApp(app, card)
         f.write(content)
         f.close()
         
-        -- Atualizar interface
         app.installed = true
-        btn:setText("[Abrir]")
+        btn:setText("[ Abrir ]")
         btn:setBackground(colors.accent3)
         btn:setEnabled(true)
         btn:onClick(function()
             term.clear()
             shell.run("apps/" .. app.file)
         end)
-        
-        -- Feedback visual
-        card:setBackground(colors.accent3)
-        sleep(0.3)
-        card:setBackground(colors.panel)
-        
     else
-        btn:setText("[Falhou]")
+        btn:setText("[ Erro ]")
         btn:setBackground(colors.accent5)
         sleep(1)
-        btn:setText("[Instalar]")
+        btn:setText("[ Instalar ]")
         btn:setBackground(colors.accent1)
         btn:setEnabled(true)
     end
 end
 
--- ==========================================
--- ATUALIZAR CATÁLOGO
--- ==========================================
-
 local function refreshCatalog()
     loadCatalog()
-    filterApps()
-    
-    -- Feedback visual
-    refreshBtn:setText("[✓] Atualizado")
+    refreshBtn:setText("[ OK ]")
     refreshBtn:setBackground(colors.accent3)
     sleep(1)
-    refreshBtn:setText("[↻] Atualizar")
-    refreshBtn:setBackground(colors.accent3)
+    refreshBtn:setText("[ Atualizar ]")
 end
 
 -- ==========================================
--- RODAPÉ
+-- RODAPE
 -- ==========================================
-
 local footer = main:addFrame()
     :setPosition(1, h - 1)
     :setSize(w, 1)
@@ -381,14 +281,13 @@ local footer = main:addFrame()
 
 footer:addLabel()
     :setPosition(3, 1)
-    :setText(" Q: Home | F1: Atualizar | Os apps são baixados do GitHub")
+    :setText(" Q: Home | Apps baixados do GitHub")
     :setForeground(colors.bg)
 
 -- ==========================================
--- ATALHOS
+-- TECLAS
 -- ==========================================
-
-main:onKeyPress(function(key)
+main:onKey(function(key)
     if key == keys.q then
         shell.run("home")
     elseif key == keys.f1 then
@@ -399,9 +298,7 @@ end)
 -- ==========================================
 -- INICIAR
 -- ==========================================
-
 drawCategories()
 loadCatalog()
-filterApps()
 
 basalt.autoUpdate()
