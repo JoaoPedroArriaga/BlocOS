@@ -1,7 +1,8 @@
 -- install.lua - BlocOS Installer
--- Downloads and installs BlocOS directly from GitHub
+-- Downloads and installs BlocOS + Basalt automatically
 
 local REPO = "https://raw.githubusercontent.com/JoaoPedroArriaga/BlocOS/main/"
+local BASALT_URL = "https://raw.githubusercontent.com/Pyragon/Basalt/master/Basalt.lua"
 local VERSION = "0.1.0"
 
 -- Detect device
@@ -61,10 +62,9 @@ local function drawProgress(percent, text)
 end
 
 -- Download file function
-local function downloadFile(path, desc)
+local function downloadFile(url, path, desc)
     write("  " .. desc .. "... ")
     
-    local url = REPO .. path
     local response = http.get(url)
     
     if response then
@@ -93,6 +93,11 @@ local function downloadFile(path, desc)
     end
 end
 
+-- Check if BlocOS is already installed
+local function isInstalled()
+    return fs.exists("home.lua") and fs.exists("kernel/boot.lua")
+end
+
 -- Welcome screen
 term.clear()
 term.setTextColor(theme.header)
@@ -101,13 +106,47 @@ print("         BlocOS Installer               ")
 print("========================================")
 print()
 term.setTextColor(theme.text)
-print("This installer will download and install")
-print("BlocOS on your " .. device .. ".")
+
+local installed = isInstalled()
+if installed then
+    print("BlocOS is already installed on this device!")
+    print()
+    print("Options:")
+    print("  1. Reinstall (overwrite all files)")
+    print("  2. Update only (keep settings)")
+    print("  3. Cancel")
+    print()
+    write("Choose (1-3): ")
+    local choice = read()
+    
+    if choice == "3" then
+        print()
+        print("Installation cancelled.")
+        return
+    elseif choice == "2" then
+        print()
+        print("Updating BlocOS...")
+    else
+        print()
+        print("Reinstalling BlocOS...")
+    end
+else
+    print("This installer will download and install:")
+    print("  • Basalt GUI Framework")
+    print("  • BlocOS system files")
+    print("  • Built-in apps")
+    print()
+    print("Repository: " .. REPO)
+    print()
+    print("Press any key to continue...")
+    os.pullEvent("key")
+end
+
+-- Download Basalt first
 print()
-print("Repository: " .. REPO)
+print("Step 1/2: Downloading dependencies...")
 print()
-print("Press any key to continue...")
-os.pullEvent("key")
+downloadFile(BASALT_URL, "basalt.lua", "Basalt GUI Framework")
 
 -- File list
 local files = {
@@ -116,24 +155,23 @@ local files = {
     {path = "kernel/core.lua", desc = "Core system"},
     {path = "kernel/config.lua", desc = "Configuration"},
     
-    -- GUI
-    {path = "gui/blocosUI.lua", desc = "GUI Framework"},
+    -- GUI (now uses Basalt)
     {path = "gui/themes.lua", desc = "Theme system"},
     {path = "gui/widgets/clock.lua", desc = "Clock widget"},
     {path = "gui/widgets/weather.lua", desc = "Weather widget"},
     {path = "gui/widgets/system.lua", desc = "System monitor"},
     
     -- Home
-    {path = "home.lua", desc = "Home screen"},
+    {path = "home.lua", desc = "Home screen (Basalt)"},
     
     -- Apps
     {path = "apps/store.lua", desc = "App Store"},
     {path = "apps/chat.lua", desc = "Chat app"}
 }
 
--- Download files
+-- Download BlocOS files
 print()
-print("Downloading files...")
+print("Step 2/2: Downloading BlocOS files...")
 print()
 
 local success = true
@@ -141,7 +179,8 @@ for i, file in ipairs(files) do
     local percent = math.floor((i - 1) / #files * 100)
     drawProgress(percent, "Downloading: " .. file.desc)
     
-    if not downloadFile(file.path, file.desc) then
+    local url = REPO .. file.path
+    if not downloadFile(url, file.path, file.desc) then
         success = false
     end
     sleep(0.2)
@@ -155,6 +194,7 @@ startup.write([[
 if pocket ~= nil then
     pcall(function() term.setSize(45, 20) end)
 end
+require("basalt")  -- Load Basalt
 shell.run("home")
 ]])
 startup.close()
@@ -165,17 +205,24 @@ term.clear()
 term.setTextColor(success and theme.success or theme.warning)
 print("========================================")
 if success then
-    print("   BlocOS Installed Successfully!     ")
+    if installed and choice == "2" then
+        print("      BlocOS Updated Successfully!      ")
+    else
+        print("      BlocOS Installed Successfully!    ")
+    end
 else
-    print("   Installation completed with         ")
-    print("         some errors                   ")
+    print("      Installation completed with         ")
+    print("            some errors                   ")
 end
 print("========================================")
 print()
 term.setTextColor(theme.text)
 print("Version: " .. VERSION)
 print("Device: " .. device)
-print("Files: " .. #files)
+print("Files: " .. #files + 1)  -- +1 for Basalt
+print()
+print("✅ Basalt GUI Framework installed")
+print("✅ BlocOS core installed")
 print()
 print("To start:")
 print("  os.reboot()")
