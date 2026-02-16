@@ -2,7 +2,7 @@
 -- Downloads and installs BlocOS + Basalt automatically
 
 local REPO = "https://raw.githubusercontent.com/JoaoPedroArriaga/BlocOS/main/"
-local BASALT_URL = "https://raw.githubusercontent.com/Pyragon/Basalt/master/Basalt.lua"
+local BASALT_URL = "https://github.com/Pyroxenium/Basalt/releases/download/v1.7/basalt.lua?raw=true"
 local VERSION = "0.1.0"
 
 -- Detect device
